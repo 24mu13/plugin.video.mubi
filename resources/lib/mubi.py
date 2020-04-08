@@ -22,6 +22,7 @@ Metadata = namedtuple('Metadata',
 
 class Mubi(object):
     _URL_MUBI = "https://mubi.com"
+    _APP_VERSION = "5.0"
     _mubi_urls = {
         "login": urljoin(_URL_MUBI, "services/android/sessions"),
         "films": urljoin(_URL_MUBI, "services/android/films"),
@@ -43,7 +44,7 @@ class Mubi(object):
 
     def login(self):
         payload = {'udid': self._udid, 'token': '', 'client': 'android',
-                   'client_version': '4.1.1', 'email': self._username,
+                   'client_version': Mubi._APP_VERSION, 'email': self._username,
                    'password': self._password}
         xbmc.log("Logging in with username: %s and udid: %s" % (self._username, self._udid), 2)
         r = requests.post(self._mubi_urls["login"] + "?client=android", data=payload)
@@ -57,20 +58,21 @@ class Mubi(object):
 
     def app_startup(self):
         payload = {'udid': self._udid, 'token': self._token, 'client': 'android',
-                   'client_version': '4.1.1'}
+                   'client_version': Mubi._APP_VERSION}
         r = requests.post(self._mubi_urls['startup'] + "?client=android", data=payload)
         if r.status_code == 200:
             self._country = json.loads(r.text)['country']
             xbmc.log("Successfully got country as %s" % self._country, 2)
         else:
             xbmc.log("Failed to get country: %s" % r.text, 4)
+            xbmc.log(Mubi._APP_VERSION, 2)
         return
 
     def get_film_page(self, film_id):
         cached = self._simplecache.get(self._cache_id % film_id)
         if cached:
             return json.loads(cached)
-        args = "?client=android&country=%s&token=%s&udid=%s&client_version=4.1.1" % (self._country, self._token, self._udid)
+        args = "?client=android&country=%s&token=%s&udid=%s&client_version=%s" % (self._country, self._token, self._udid, Mubi._APP_VERSION)
         r = requests.get((self._mubi_urls['film'] % str(film_id)) + args)
         if r.status_code != 200:
             xbmc.log("Invalid status code %s getting film info for %s" % (r.status_code, film_id), 4)
@@ -122,7 +124,7 @@ class Mubi(object):
 
     def get_now_showing_json(self):
         # Get list of available films
-        args = "?client=android&country=%s&token=%s&udid=%s&client_version=4.1.1" % (self._country, self._token, self._udid)
+        args = "?client=android&country=%s&token=%s&udid=%s&client_version=%s" % (self._country, self._token, self._udid, Mubi._APP_VERSION)
         r = requests.get(self._mubi_urls['films'] + args)
         if r.status_code != 200:
             xbmc.log("Invalid status code %s getting list of films", 4)
@@ -146,8 +148,8 @@ class Mubi(object):
 
     def get_play_url(self, film_id):
         (reel_id, is_drm) = self.get_default_reel_id_is_drm(film_id)
-        args = "?client=android&country=%s&token=%s&udid=%s&client_version=4.1.1&film_id=%s&reel_id=%s&download=false" \
-               % (self._country, self._token, self._udid, film_id, reel_id)
+        args = "?client=android&country=%s&token=%s&udid=%s&client_version=%s&film_id=%s&reel_id=%s&download=false" \
+               % (self._country, self._token, self._udid, Mubi._APP_VERSION, film_id, reel_id)
         r = requests.get((self._mubi_urls['viewing'] % str(film_id)) + args)
         if r.status_code != 200:
             xbmc.log("Could not get secure URL for film %s" % film_id, 4)
